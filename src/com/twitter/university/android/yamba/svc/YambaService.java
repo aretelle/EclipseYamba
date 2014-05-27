@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.twitter.university.android.yamba.R;
+import com.twitter.university.android.yamba.YambaApplication;
 
 
 public class YambaService extends IntentService {
