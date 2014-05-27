@@ -15,9 +15,16 @@ import java.util.Map;
 
 
 public class YambaProvider extends ContentProvider {
+    public static final String CONSTRAINT_IDS = YambaDbHelper.COL_ID + " in ";
+    public static final String CONSTRAINT_XACT = YambaDbHelper.COL_XACT + "=?";
+    public static final String CONSTRAINT_NEEDS_SYNC
+        = YambaDbHelper.COL_SENT + " is null and " + YambaDbHelper.COL_XACT + " is null";
+
     private static final int MAX_TIMELINE_ITEM_TYPE = 1;
     private static final int TIMELINE_ITEM_TYPE = 2;
     private static final int TIMELINE_DIR_TYPE = 3;
+    private static final int POST_ITEM_TYPE = 4;
+    private static final int POST_DIR_TYPE = 5;
 
     //  scheme                     authority                   path  [id]
     // content://com.twitter.university.android.yamba.timeline/timeline/7
@@ -35,6 +42,14 @@ public class YambaProvider extends ContentProvider {
             YambaContract.AUTHORITY,
             YambaContract.Timeline.TABLE,
             TIMELINE_DIR_TYPE);
+        MATCHER.addURI(
+            YambaContract.AUTHORITY,
+            YambaContract.Posts.TABLE + "/#",
+            POST_ITEM_TYPE);
+        MATCHER.addURI(
+            YambaContract.AUTHORITY,
+            YambaContract.Posts.TABLE,
+            POST_DIR_TYPE);
     }
 
     private static final Map<String, String> PROJ_MAP_MAX_TIMELINE = new ProjectionMap.Builder()
@@ -71,6 +86,38 @@ public class YambaProvider extends ContentProvider {
         .build()
         .getProjectionMap();
 
+    private static final ColumnMap COL_MAP_POSTS = new ColumnMap.Builder()
+        .addColumn(
+            YambaContract.Posts.Columns.ID,
+            YambaDbHelper.COL_ID,
+            ColumnMap.Type.LONG)
+        .addColumn(
+            YambaContract.Posts.Columns.TIMESTAMP,
+            YambaDbHelper.COL_TIMESTAMP,
+            ColumnMap.Type.LONG)
+        .addColumn(
+            YambaContract.Posts.Columns.TRANSACTION,
+            YambaDbHelper.COL_XACT,
+            ColumnMap.Type.STRING)
+        .addColumn(
+            YambaContract.Posts.Columns.SENT,
+            YambaDbHelper.COL_SENT,
+            ColumnMap.Type.LONG)
+        .addColumn(
+            YambaContract.Posts.Columns.TWEET,
+            YambaDbHelper.COL_TWEET,
+            ColumnMap.Type.STRING)
+        .build();
+
+    private static final Map<String, String> PROJ_MAP_POSTS = new ProjectionMap.Builder()
+        .addColumn(YambaContract.Posts.Columns.ID, YambaDbHelper.COL_ID)
+        .addColumn(YambaContract.Posts.Columns.TIMESTAMP, YambaDbHelper.COL_TIMESTAMP)
+        .addColumn(YambaContract.Posts.Columns.TRANSACTION, YambaDbHelper.COL_XACT)
+        .addColumn(YambaContract.Posts.Columns.SENT, YambaDbHelper.COL_SENT)
+        .addColumn(YambaContract.Posts.Columns.TWEET, YambaDbHelper.COL_TWEET)
+        .build()
+        .getProjectionMap();
+
     private YambaDbHelper dbHelper;
 
     @Override
@@ -88,6 +135,10 @@ public class YambaProvider extends ContentProvider {
                 return YambaContract.Timeline.ITEM_TYPE;
             case TIMELINE_DIR_TYPE:
                 return YambaContract.Timeline.DIR_TYPE;
+            case POST_ITEM_TYPE:
+                return YambaContract.Posts.ITEM_TYPE;
+            case POST_DIR_TYPE:
+                return YambaContract.Posts.DIR_TYPE;
             default:
                 return null;
         }
@@ -96,23 +147,32 @@ public class YambaProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] proj, String sel, String[] selArgs, String sort) {
 
+        String table;
         long pk = -1;
         Map<String, String> projMap;
         switch (MATCHER.match(uri)) {
             case MAX_TIMELINE_ITEM_TYPE:
                 projMap = PROJ_MAP_MAX_TIMELINE;
+                table = YambaDbHelper.TABLE_TIMELINE;
                 break;
             case TIMELINE_ITEM_TYPE:
                 pk = ContentUris.parseId(uri);
             case TIMELINE_DIR_TYPE:
                 projMap = PROJ_MAP_TIMELINE;
+                table = YambaDbHelper.TABLE_TIMELINE;
+                break;
+            case POST_ITEM_TYPE:
+                pk = ContentUris.parseId(uri);
+            case POST_DIR_TYPE:
+                table = YambaDbHelper.TABLE_POSTS;
+                projMap = PROJ_MAP_POSTS;
                 break;
             default:
                 throw new IllegalArgumentException("Unexpected uri: " + uri);
         }
 
         SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setTables(YambaDbHelper.TABLE_TIMELINE);
+        qb.setTables(table);
 
         qb.setProjectionMap(projMap);
 
@@ -160,13 +220,47 @@ public class YambaProvider extends ContentProvider {
     }
 
     @Override
-    public Uri insert(Uri uri, ContentValues vals) {
-        throw new UnsupportedOperationException("delete not supported");
+    public Uri insert(Uri uri, ContentValues row) {
+        switch (MATCHER.match(uri)) {
+            case POST_DIR_TYPE:
+                break;
+            default:
+                throw new IllegalArgumentException("Unexpected uri: " + uri);
+        }
+
+        long id = getDb().insert(
+            YambaDbHelper.TABLE_POSTS,
+            null,
+            COL_MAP_POSTS.translateCols(row));
+
+        if (0 >= id) { return null; }
+
+        uri = uri.buildUpon().appendPath(String.valueOf(id)).build();
+        getContext().getContentResolver().notifyChange(uri, null);
+
+        return uri;
     }
 
     @Override
-    public int update(Uri arg0, ContentValues arg1, String arg2, String[] arg3) {
-        throw new UnsupportedOperationException("update not supported");
+    public int update(Uri uri, ContentValues row, String sel, String[] selArgs) {
+        switch (MATCHER.match(uri)) {
+            case POST_DIR_TYPE:
+                break;
+            default:
+                throw new IllegalArgumentException("Unexpected uri: " + uri);
+        }
+
+        int n = getDb().update(
+            YambaDbHelper.TABLE_POSTS,
+            COL_MAP_POSTS.translateCols(row),
+            sel,
+            selArgs);
+
+        if (0 < n) {
+            getContext().getContentResolver().notifyChange(uri, null);
+        }
+
+        return n;
     }
 
     @Override
