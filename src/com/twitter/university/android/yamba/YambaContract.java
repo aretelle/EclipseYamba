@@ -62,4 +62,28 @@ public final class YambaContract {
             public static final String TWEET = "tweet";
         }
     }
+
+    public static class Posts {
+        private Posts() { }
+
+        public static final String TABLE = "posts";
+
+        public static final Uri URI = BASE_URI.buildUpon().appendPath(TABLE).build();
+
+        private static final String MINOR_TYPE = "/vnd." + AUTHORITY + "." + TABLE;
+
+        public static final String ITEM_TYPE
+            = ContentResolver.CURSOR_ITEM_BASE_TYPE + MINOR_TYPE;
+        public static final String DIR_TYPE
+            = ContentResolver.CURSOR_DIR_BASE_TYPE + MINOR_TYPE;
+
+        public static class Columns {
+            private Columns() { }
+            public static final String ID = BaseColumns._ID;
+            public static final String TIMESTAMP = "timestamp";
+            public static final String TRANSACTION = "xact";
+            public static final String SENT = "sent";
+            public static final String TWEET = "tweet";
+        }
+    }
 }

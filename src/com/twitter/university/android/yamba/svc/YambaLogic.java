@@ -18,7 +18,6 @@ import java.util.List;
 public class YambaLogic {
     private static final String TAG = "LOGIC";
 
-
     private final Context ctxt;
     private final int maxPolls;
 
@@ -27,10 +26,19 @@ public class YambaLogic {
         this.maxPolls = ctxt.getResources().getInteger(R.integer.poll_max);
     }
 
+    public void doPost(String tweet) {
+        ContentValues cv = new ContentValues();
+        cv.put(YambaContract.Posts.Columns.TWEET, tweet);
+        cv.put(YambaContract.Posts.Columns.TIMESTAMP, System.currentTimeMillis());
+        ctxt.getContentResolver().insert(YambaContract.Posts.URI, cv);
+    }
+
     public void doPoll() {
         Log.d(TAG, "poll");
         try {
-            parseTimeline(((YambaApplication) ctxt.getApplicationContext()).getClient().getTimeline(maxPolls));
+            parseTimeline((
+                (YambaApplication) ctxt.getApplicationContext())
+                .getClient().getTimeline(maxPolls));
         }
         catch (Exception e) {
             Log.e(TAG, "Poll failed: " + e, e);
