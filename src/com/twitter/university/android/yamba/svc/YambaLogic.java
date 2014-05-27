@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.util.Log;
 
 import com.marakana.android.yamba.clientlib.YambaClient.Status;
+import com.marakana.android.yamba.clientlib.YambaClientException;
 import com.twitter.university.android.yamba.BuildConfig;
 import com.twitter.university.android.yamba.R;
 import com.twitter.university.android.yamba.YambaApplication;
@@ -18,19 +19,31 @@ import java.util.List;
 public class YambaLogic {
     private static final String TAG = "LOGIC";
 
+    private static final int OP_TOAST = -3;
 
     private final Context ctxt;
     private final int maxPolls;
 
+    // Must be called from the UI thread
     public YambaLogic(Context ctxt) {
         this.ctxt = ctxt;
         this.maxPolls = ctxt.getResources().getInteger(R.integer.poll_max);
     }
 
+    public Integer doPost(String tweet) {
+        int msg = R.string.tweet_succeeded;
+        try { ((YambaApplication) ctxt.getApplicationContext()).getClient().postStatus(tweet); }
+        catch (YambaClientException e) {
+                Log.e(TAG, "post failed", e);
+                msg = R.string.tweet_failed;
+            }
+        return Integer.valueOf(msg);
+    }
+
     public void doPoll() {
-        Log.d(TAG, "poll");
         try {
-            parseTimeline(((YambaApplication) ctxt.getApplicationContext()).getClient().getTimeline(maxPolls));
+            parseTimeline(
+                ((YambaApplication) ctxt.getApplicationContext()).getClient().getTimeline(maxPolls));
         }
         catch (Exception e) {
             Log.e(TAG, "Poll failed: " + e, e);
