@@ -5,20 +5,16 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.marakana.android.yamba.clientlib.YambaClientException;
+import com.twitter.university.android.yamba.svc.YambaService;
 
 
 public class TweetFragment extends Fragment {
-    private static final String TAG = "TWEET";
-
     private int okColor;
     private int warnColor;
     private int errColor;
@@ -99,15 +95,7 @@ public class TweetFragment extends Fragment {
 
         tweetView.setText("");
 
-        //!!! This won't work
-        YambaApplication app = (YambaApplication) getActivity().getApplication();
-        int msg = R.string.tweet_succeeded;
-        try { app.getClient().postStatus(tweet); }
-        catch (YambaClientException e) {
-            Log.e(TAG, "post failed", e);
-            msg = R.string.tweet_failed;
-        }
-        Toast.makeText(app, msg, Toast.LENGTH_LONG).show();
+        YambaService.postTweet(getActivity(), tweet);
     }
 
     private boolean checkTweetLen(int n) {
